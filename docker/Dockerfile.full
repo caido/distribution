@@ -1,0 +1,21 @@
+FROM debian:bookworm-slim
+
+RUN \
+  apt-get update && \
+  apt-get -y install ca-certificates && \
+  apt-get -y install libasound2 libatk-bridge2.0-0 libatk1.0-0 libatspi2.0-0 libc6 libcairo2 libcups2 libdbus-1-3 \
+    libdrm2 libexpat1 libgbm1 libglib2.0-0 libnspr4 libnss3 libpango-1.0-0 libpangocairo-1.0-0 libstdc++6 libudev1 \
+    libuuid1 libx11-6 libx11-xcb1 libxcb-dri3-0 libxcb1 libxcomposite1 libxcursor1 libxdamage1 libxext6 libxfixes3 \
+    libxi6 libxkbcommon0 libxrandr2 libxrender1 libxshmfence1 libxss1 libxtst6 && \
+  apt-get clean
+
+RUN groupadd -r caido && useradd --no-log-init -m -r -g caido caido
+
+COPY caido-cli /usr/bin/caido-cli
+
+USER caido
+
+EXPOSE 8080
+
+ENTRYPOINT ["caido-cli"]
+CMD ["--no-renderer-sandbox", "--no-open", "--listen", "0.0.0.0:8080"]

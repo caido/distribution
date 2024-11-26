@@ -100,8 +100,20 @@ jobs:
           username: caido
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Generate Docker metadata
-        id: meta
+      - name: Generate Docker metadata (slim)
+        id: meta-slim
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            caido/caido
+            ghcr.io/caido/caido
+          tags: |
+            type=raw,value=latest-slim
+            type=raw,value=${{ inputs.version }}-slim
+            type=semver,pattern={{version}}-slim,value=${{ inputs.version }}
+
+      - name: Generate Docker metadata (full)
+        id: meta-full
         uses: docker/metadata-action@v5
         with:
           images: |
@@ -112,22 +124,42 @@ jobs:
             type=raw,value=${{ inputs.version }}
             type=semver,pattern={{version}},value=${{ inputs.version }}
 
-      - name: Build and push x86_64
+      - name: Build and push x86_64 (slim)
         uses: docker/build-push-action@v5
         with:
           context: docker/x86_64
           platforms: linux/amd64
           push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          file: docker/Dockerfile
+          tags: ${{ steps.meta-slim.outputs.tags }}
+          labels: ${{ steps.meta-slim.outputs.labels }}
+          file: docker/Dockerfile.slim
 
-      - name: Build and push aarch64
+      - name: Build and push x86_64 (full)
+        uses: docker/build-push-action@v5
+        with:
+          context: docker/x86_64
+          platforms: linux/amd64
+          push: true
+          tags: ${{ steps.meta-full.outputs.tags }}
+          labels: ${{ steps.meta-full.outputs.labels }}
+          file: docker/Dockerfile.full
+
+      - name: Build and push aarch64 (slim)
         uses: docker/build-push-action@v5
         with:
           context: docker/aarch64
           platforms: linux/arm64
           push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          file: docker/Dockerfile
+          tags: ${{ steps.meta-slim.outputs.tags }}
+          labels: ${{ steps.meta-slim.outputs.labels }}
+          file: docker/Dockerfile.slim
+
+      - name: Build and push aarch64 (full)
+        uses: docker/build-push-action@v5
+        with:
+          context: docker/aarch64
+          platforms: linux/arm64
+          push: true
+          tags: ${{ steps.meta-full.outputs.tags }}
+          labels: ${{ steps.meta-full.outputs.labels }}
+          file: docker/Dockerfile.full
