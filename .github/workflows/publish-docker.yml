@@ -1,4 +1,4 @@
-name: Build Docker
+name: Publish Docker
 
 on:
   workflow_call:
@@ -55,8 +55,8 @@ jobs:
               echo "valid=true" >> $GITHUB_OUTPUT
           fi
 
-  build:
-    name: Build images
+  publish:
+    name: Publish images
     runs-on: ubuntu-latest
     if: ${{ !inputs.mock && needs.meta.outputs.valid == 'true' }}
     needs: meta
