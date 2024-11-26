@@ -1,0 +1,133 @@
+name: Build Docker
+
+on:
+  workflow_call:
+    inputs:
+      tag:
+        required: true
+        type: string
+        description: 'Tag to build'
+
+      mock:
+        type: boolean
+        default: false
+        description: 'Should mock build'
+
+    secrets:
+      DOCKERHUB_TOKEN:
+        required: true
+        description: 'DockerHub token'
+
+      GITHUB_TOKEN:
+        required: true
+        description: 'GitHub token'
+
+jobs:
+  meta:
+    name: Fetch metadata
+    runs-on: ubuntu-20.04
+
+    outputs:
+      link_x86_64: ${{ steps.release.outputs.link_x86_64 }}
+      link_aarch64: ${{ steps.release.outputs.link_aarch64 }}
+      version: ${{ steps.release.outputs.version }}
+      valid: ${{ steps.check-tag.outputs.valid }}
+
+    steps:
+      - name: Find release
+        id: release
+        run: |
+          JSON=$(curl -s https://caido.download/releases/latest)
+
+          LINK_x86_64=$(jq -r '.links[] | select(.platform == "linux-x86_64" and .kind == "cli") | .link' <<< $JSON)
+          echo "link_x86_64=$LINK_x86_64" >> $GITHUB_OUTPUT
+
+          LINK_AARCH64=$(jq -r '.links[] | select(.platform == "linux-aarch64" and .kind == "cli") | .link' <<< $JSON)
+          echo "link_aarch64=$LINK_AARCH64" >> $GITHUB_OUTPUT
+
+          VERSION=$(jq -r '.version' <<< $JSON)
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Check Tag
+        id: check-tag
+        run: |
+          if [[ v${{ steps.release.outputs.version }} == ${{ inputs.tag }} ]]; then
+              echo "valid=true" >> $GITHUB_OUTPUT
+          fi
+
+  build:
+    name: Build images
+    runs-on: ubuntu-latest
+    if: ${{ !inputs.mock && needs.meta.outputs.valid == 'true' }}
+    needs: meta
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Fetch x86_64 binary
+        run: |
+          mkdir -p docker/x86_64
+          curl -L ${{ needs.meta.outputs.link_x86_64 }} --output caido.tar.gz
+          tar -xf caido.tar.gz
+          mv caido-cli docker/x86_64/
+          rm caido.tar.gz
+
+      - name: Fetch aarch64 binary
+        run: |
+          mkdir -p docker/aarch64
+          curl -L ${{ needs.meta.outputs.link_aarch64 }} --output caido.tar.gz
+          tar -xf caido.tar.gz
+          mv caido-cli docker/aarch64/
+          rm caido.tar.gz
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: caidobot
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: caido
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            caido/caido
+            ghcr.io/caido/caido
+          tags: |
+            type=raw,value=latest
+            type=raw,value=${{ inputs.version }}
+            type=semver,pattern={{version}},value=${{ inputs.version }}
+
+      - name: Build and push x86_64
+        uses: docker/build-push-action@v5
+        with:
+          context: docker/x86_64
+          platforms: linux/amd64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          file: docker/Dockerfile
+
+      - name: Build and push aarch64
+        uses: docker/build-push-action@v5
+        with:
+          context: docker/aarch64
+          platforms: linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          file: docker/Dockerfile
