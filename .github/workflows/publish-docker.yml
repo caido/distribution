@@ -8,10 +8,10 @@ on:
         type: string
         description: 'Tag to build'
 
-      mock:
+      dry-run:
         type: boolean
         default: false
-        description: 'Should mock build'
+        description: 'Action is a dry run'
 
     secrets:
       DOCKERHUB_TOKEN:
@@ -58,7 +58,7 @@ jobs:
   publish:
     name: Publish images
     runs-on: ubuntu-latest
-    if: ${{ !inputs.mock && needs.meta.outputs.valid == 'true' }}
+    if: ${{ needs.meta.outputs.valid == 'true' }}
     needs: meta
 
     steps:
@@ -125,6 +125,7 @@ jobs:
             type=semver,pattern={{version}},value=${{ inputs.version }}
 
       - name: Build and push x86_64 (slim)
+        if: inputs.dry-run == false
         uses: docker/build-push-action@v5
         with:
           context: docker/x86_64
@@ -135,6 +136,7 @@ jobs:
           file: docker/Dockerfile.slim
 
       - name: Build and push x86_64 (full)
+        if: inputs.dry-run == false
         uses: docker/build-push-action@v5
         with:
           context: docker/x86_64
@@ -145,6 +147,7 @@ jobs:
           file: docker/Dockerfile.full
 
       - name: Build and push aarch64 (slim)
+        if: inputs.dry-run == false
         uses: docker/build-push-action@v5
         with:
           context: docker/aarch64
@@ -155,6 +158,7 @@ jobs:
           file: docker/Dockerfile.slim
 
       - name: Build and push aarch64 (full)
+        if: inputs.dry-run == false
         uses: docker/build-push-action@v5
         with:
           context: docker/aarch64
