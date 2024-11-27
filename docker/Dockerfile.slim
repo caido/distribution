@@ -2,7 +2,7 @@ FROM debian:bookworm-slim
 
 RUN \
   apt-get update && \
-  apt-get -y install ca-certificates && \
+  apt-get -y install ca-certificates tini && \
   apt-get clean
 
 RUN groupadd -r caido && useradd --no-log-init -m -r -g caido caido
@@ -13,5 +13,5 @@ USER caido
 
 EXPOSE 8080
 
-ENTRYPOINT ["caido-cli"]
-CMD ["--no-renderer-sandbox", "--no-open", "--listen", "0.0.0.0:8080"]
+ENTRYPOINT ["tini", "--"]
+CMD ["caido-cli", "--no-renderer-sandbox", "--no-open", "--listen", "0.0.0.0:8080"]
