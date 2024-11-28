@@ -1,5 +1,7 @@
 FROM debian:bookworm-slim
 
+ARG TARGETARCH
+
 RUN \
   apt-get update && \
   apt-get -y install ca-certificates tini && \
@@ -11,7 +13,7 @@ RUN \
 
 RUN groupadd -r caido && useradd --no-log-init -m -r -g caido caido
 
-COPY caido-cli /usr/bin/caido-cli
+COPY caido-cli-${TARGETARCH} /usr/bin/caido-cli
 
 USER caido
 

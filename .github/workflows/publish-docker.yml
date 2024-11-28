@@ -83,7 +83,7 @@ jobs:
           mkdir -p docker/x86_64
           curl -L ${{ needs.meta.outputs.link_x86_64 }} --output caido.tar.gz
           tar -xf caido.tar.gz
-          mv caido-cli docker/x86_64/
+          mv caido-cli docker/caido-cli-amd64
           rm caido.tar.gz
 
       - name: Fetch aarch64 binary
@@ -91,7 +91,7 @@ jobs:
           mkdir -p docker/aarch64
           curl -L ${{ needs.meta.outputs.link_aarch64 }} --output caido.tar.gz
           tar -xf caido.tar.gz
-          mv caido-cli docker/aarch64/
+          mv caido-cli docker/caido-cli-arm64
           rm caido.tar.gz
 
       - name: Login to Docker Hub
@@ -134,42 +134,22 @@ jobs:
             type=raw,value=${{ needs.meta.outputs.version }}
             type=semver,pattern={{version}},value=${{ needs.meta.outputs.version }}
 
-      - name: Build and push x86_64 (slim)
+      - name: Build and push (slim)
         if: inputs.dry-run == false
         uses: docker/build-push-action@v5
         with:
-          context: docker/x86_64
-          platforms: linux/amd64
+          context: docker
+          platforms: linux/amd64, linux/arm64
           push: true
           tags: ${{ steps.meta-slim.outputs.tags }}
           file: docker/Dockerfile.slim
 
-      - name: Build and push x86_64 (full)
+      - name: Build and push (full)
         if: inputs.dry-run == false
         uses: docker/build-push-action@v5
         with:
-          context: docker/x86_64
-          platforms: linux/amd64
-          push: true
-          tags: ${{ steps.meta-full.outputs.tags }}
-          file: docker/Dockerfile.full
-
-      - name: Build and push aarch64 (slim)
-        if: inputs.dry-run == false
-        uses: docker/build-push-action@v5
-        with:
-          context: docker/aarch64
-          platforms: linux/arm64
-          push: true
-          tags: ${{ steps.meta-slim.outputs.tags }}
-          file: docker/Dockerfile.slim
-
-      - name: Build and push aarch64 (full)
-        if: inputs.dry-run == false
-        uses: docker/build-push-action@v5
-        with:
-          context: docker/aarch64
-          platforms: linux/arm64
+          context: docker
+          platforms: linux/amd64, linux/arm64
           push: true
           tags: ${{ steps.meta-full.outputs.tags }}
           file: docker/Dockerfile.full
