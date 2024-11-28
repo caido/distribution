@@ -109,8 +109,8 @@ jobs:
             ghcr.io/caido/caido
           tags: |
             type=raw,value=latest-slim
-            type=raw,value=${{ inputs.version }}-slim
-            type=semver,pattern={{version}}-slim,value=${{ inputs.version }}
+            type=raw,value=${{ needs.meta.outputs.version }}-slim
+            type=semver,pattern={{version}}-slim,value=${{ needs.meta.outputs.version }}
 
       - name: Generate Docker metadata (full)
         id: meta-full
@@ -121,8 +121,8 @@ jobs:
             ghcr.io/caido/caido
           tags: |
             type=raw,value=latest
-            type=raw,value=${{ inputs.version }}
-            type=semver,pattern={{version}},value=${{ inputs.version }}
+            type=raw,value=${{ needs.meta.outputs.version }}
+            type=semver,pattern={{version}},value=${{ needs.meta.outputs.version }}
 
       - name: Build and push x86_64 (slim)
         if: inputs.dry-run == false
