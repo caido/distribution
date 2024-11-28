@@ -18,9 +18,13 @@ on:
         required: true
         description: 'DockerHub token'
 
+      GITHUB_CHECKOUT_TOKEN:
+        required: true
+        description: 'GitHub checkout token'
+
       GITHUB_PACKAGES_TOKEN:
         required: true
-        description: 'GitHub token'
+        description: 'GitHub packages token'
 
 jobs:
   meta:
@@ -66,6 +70,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: caido/distribution
+          token: ${{ secrets.GITHUB_CHECKOUT_TOKEN }}
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
