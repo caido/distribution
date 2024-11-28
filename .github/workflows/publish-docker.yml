@@ -64,6 +64,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          repository: caido/distribution
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -107,10 +109,12 @@ jobs:
           images: |
             caido/caido
             ghcr.io/caido/caido
+          flavor: |
+            latest=true
+            suffix=-slim,onlatest=true
           tags: |
-            type=raw,value=latest-slim
-            type=raw,value=${{ needs.meta.outputs.version }}-slim
-            type=semver,pattern={{version}}-slim,value=${{ needs.meta.outputs.version }}
+            type=raw,value=${{ needs.meta.outputs.version }}
+            type=semver,pattern={{version}},value=${{ needs.meta.outputs.version }}
 
       - name: Generate Docker metadata (full)
         id: meta-full
@@ -119,8 +123,9 @@ jobs:
           images: |
             caido/caido
             ghcr.io/caido/caido
+          flavor: |
+            latest=true
           tags: |
-            type=raw,value=latest
             type=raw,value=${{ needs.meta.outputs.version }}
             type=semver,pattern={{version}},value=${{ needs.meta.outputs.version }}
 
@@ -132,7 +137,6 @@ jobs:
           platforms: linux/amd64
           push: true
           tags: ${{ steps.meta-slim.outputs.tags }}
-          labels: ${{ steps.meta-slim.outputs.labels }}
           file: docker/Dockerfile.slim
 
       - name: Build and push x86_64 (full)
@@ -143,7 +147,6 @@ jobs:
           platforms: linux/amd64
           push: true
           tags: ${{ steps.meta-full.outputs.tags }}
-          labels: ${{ steps.meta-full.outputs.labels }}
           file: docker/Dockerfile.full
 
       - name: Build and push aarch64 (slim)
@@ -154,7 +157,6 @@ jobs:
           platforms: linux/arm64
           push: true
           tags: ${{ steps.meta-slim.outputs.tags }}
-          labels: ${{ steps.meta-slim.outputs.labels }}
           file: docker/Dockerfile.slim
 
       - name: Build and push aarch64 (full)
@@ -165,5 +167,4 @@ jobs:
           platforms: linux/arm64
           push: true
           tags: ${{ steps.meta-full.outputs.tags }}
-          labels: ${{ steps.meta-full.outputs.labels }}
           file: docker/Dockerfile.full
