@@ -1,0 +1,72 @@
+name: Update APT Repository
+
+on:
+  schedule:
+    # Run daily at 6:00 AM UTC
+    - cron: "0 6 * * *"
+  workflow_dispatch: # Allows manual triggering
+  push:
+    branches:
+      - main
+    paths:
+      - "scripts/**"
+      - "aptify.yml"
+      - ".github/workflows/update-apt-repo.yml"
+
+jobs:
+  update-repo:
+    name: Update APT Repository
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+      pages: write
+      id-token: write # Ensure GITHUB_TOKEN has write permissions
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ca-certificates curl jq
+      - name: Install yq for YAML processing
+        run: |
+          sudo snap install yq
+          which yq
+      - name: "Download and install aptify"
+        run: |
+          wget https://github.com/dpeckett/aptify/releases/download/v0.8.0/aptify_0.8.0-1_amd64.deb
+          sudo apt install -y ./aptify_0.8.0-1_amd64.deb
+
+      - name: Configure aptify GPG Key
+        run: |
+          mkdir -p "$XDG_CONFIG_HOME/aptify"
+          echo "${{ secrets.GPG_PRIVATE_KEY }}" > "$XDG_CONFIG_HOME/aptify/aptify_private.asc"
+
+      - name: Download Caido .deb packages
+        run: |
+          chmod +x ./scripts/download_deb_packages.sh
+          ./scripts/download_deb_packages.sh --update-config
+      - name: Verify downloaded packages
+        run: |
+          echo "=== Verifying packages ==="
+          ls -la packages/
+          echo "=== Package count ==="
+          ls packages/*.deb | wc -l
+
+      - name: Aptify the packages
+        run: |
+          aptify build --config aptify.yml --repository-dir repo
+
+      - name: Setup Rclone
+        uses: AnimMouse/setup-rclone@v1
+        with:
+          rclone_config: ${{ secrets.RCLONE_CONFIG }}
+          disable_base64: true
+
+      - name: Sync repo with rclone to production
+        run: |
+          rclone sync ./repo/ pkg.zbranch.io:pkg -P
