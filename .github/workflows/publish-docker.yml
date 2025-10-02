@@ -41,7 +41,8 @@ jobs:
       - name: Find release
         id: release
         run: |
-          JSON=$(curl -s https://caido.download/releases/latest)
+          # Use the API to avoid caching of the cloudflare CDN
+          JSON=$(curl -s https://api.caido.io/releases/latest)
 
           LINK_x86_64=$(jq -r '.links[] | select(.platform == "linux-x86_64" and .kind == "cli") | .link' <<< $JSON)
           echo "link_x86_64=$LINK_x86_64" >> $GITHUB_OUTPUT
